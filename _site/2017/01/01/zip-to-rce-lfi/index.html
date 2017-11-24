@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  
+  
+  <title>Leveraging LFI to RCE using zip://</title>
+  <meta name="description" content="So you’ve found a page that’s vulnerable to Local File Inclusion: You do some testing to leverage this vulnerability to RCE, but nothing’s working Null bytes don’t work, /proc/self/environ doesn’t work, and wrappers that lead to RCE such as data:// or php://input do not work either. Don’t give up yet, there may be another way! Let’s start off by trying to read the source code of this page! Let’s see if php://filter works: http://127.0.0.1/vuln.php?page=php://filter/convert.base64-encode/resource=vuln Voila! It works. Once base64 decoded the code is: Now you can see how the page is being requested. It’s using include to request the page &amp;amp; appending the .php (ignore the commented line below it, I was was merely playing with RFI). So now we know we can read files on the site. Use this to try to find the full path of the site, since you can use it. Now say this site has a function where you can upload a profile picture or upload a picture to a gallery. Awesome, then you’re in luck! Write some php code (Ex: &amp;lt;?php phpinfo(); ?&amp;gt; and compress it to a zip file. Rename the zip file to avatar.jpg (change the extension to an image file) and upload it. My picture is uploaded to http://127.0.0.1/avatars/myavi.jpg Now here’s the trick using the zip:// wrapper! zip:///path/to/filename#dir/file (URL Encode the # to %23) when exploiting. Example: With full path: http://127.0.0.1/vuln.php?page=zip:///Library/WebServer/Documents/avatars/myavi.jpg%23shell Without full path: http://127.0.0.1/vuln.php?page=zip://avatars/myavi.jpg%23shell I did not have to add the .php to the end because the script will automatically appends it! Now, we have successfully leveraged this LFI to an RCE using the zip:// wrapper! Thanks for reading, Corben Douglas (@sxcurity) https://hackerone.com/cdl https://twitter.com/sxcurity https://bugcrowd.com/c https://github.com/sxcurity">
+  
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://hack-r.be:4000/2017/01/01/zip-to-rce-lfi/">
+  
+  
+  <link rel="alternate" type="application/rss+xml" title="sxcurity.pro" href="http://hack-r.be:4000/feed.xml">
+
+  
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="sxcurity">
+  <meta name="twitter:title" content="Leveraging LFI to RCE using zip://">
+  <meta name="twitter:description" content="So you’ve found a page that’s vulnerable to Local File Inclusion: You do some testing to leverage this vulnerability to RCE, but nothing’s working Null bytes don’t work, /proc/self/environ doesn’t ...">
+  
+    <meta name="twitter:creator" content="sxcurity">
+  
+  
+
+  <script type="text/javascript">
+  WebFontConfig = {
+    google: { families: [ 'Bitter:400,700,400italic:latin' ] }
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+</script>
+
+  
+
+</head>
+
+
+  <body>
+
+    <header class="site-header" style="background-image: url(/images/coffee.jpg)">
+
+  <div class="wrapper">
+    <a class="site-title" style="text-decoration:none" href="/"><img height="30px" width="30px" src="/icon.svg"/>&nbsp;sxcurity.pro</a>
+
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">[ About ]</a>
+      
+        
+        <a class="page-link" href="/archives/">[ Archives ]</a>
+      
+        
+        <a class="page-link" href="/advisories">[ Advisories ]</a>
+      
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    
+      <h1 class="post-title" itemprop="name headline">Leveraging LFI to RCE using zip://</h1>
+    
+    <p class="post-meta"><time datetime="2017-01-01T00:00:00+00:00" itemprop="datePublished">Jan 1, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>So you’ve found a page that’s vulnerable to Local File Inclusion: 
+<br /><br />
+<img src="/images/lfi/lfi-1.png" alt="LFI-1" title="LFI-1" />
+<br />
+ You do some testing to leverage this vulnerability to RCE, but nothing’s working
+Null bytes don’t work, <code class="highlighter-rouge">/proc/self/environ</code> doesn’t work, and wrappers that lead to RCE
+such as <code class="highlighter-rouge">data://</code> or <code class="highlighter-rouge">php://input</code> do not work either. Don’t give up yet, there may be another way! 
+<br /><br />
+Let’s start off by trying to read the source code of this page! Let’s see if <code class="highlighter-rouge">php://filter</code> works:
+<code class="highlighter-rouge">http://127.0.0.1/vuln.php?page=php://filter/convert.base64-encode/resource=vuln</code>
+<br /><br />
+<img src="/images/lfi/lfi-2.png" alt="LFI-2" title="LFI-2" />
+<br /><br />
+Voila! It works. Once base64 decoded the code is: <br /><br />
+<img src="/images/lfi/lfi-3.png" alt="LFI-3" title="LFI-3" />
+<br /><br />
+Now you can see how the page is being requested. It’s using include to request the page &amp; appending the .php
+(ignore the commented line below it, I was was merely playing with RFI). 
+<br /><br />
+So now we know we can read files on the site. Use this to try to find the full path of the site, since you can use it. Now say this site has a function where you can upload a profile picture or upload a picture to a gallery. Awesome, then you’re in luck!
+<br /><br />
+Write some php code (Ex: <code class="highlighter-rouge">&lt;?php phpinfo(); ?&gt;</code> and <strong>compress it</strong> to a zip file.
+Rename the zip file to <em>avatar.jpg</em> (change the extension to an image file) and upload it.<br />
+<br /><br />
+My picture is uploaded to http://127.0.0.1/avatars/myavi.jpg
+Now here’s the trick using the <strong>zip://</strong> wrapper! 
+<br /><br />
+<code class="highlighter-rouge">zip:///path/to/filename#dir/file</code> (URL Encode the # to %23) when exploiting.
+<br /><br /></p>
+<h3>Example:</h3>
+<p>With full path: <br /><br />
+<code class="highlighter-rouge">http://127.0.0.1/vuln.php?page=zip:///Library/WebServer/Documents/avatars/myavi.jpg%23shell</code>
+<br /><br />
+Without full path: <br /><br />
+<code class="highlighter-rouge">http://127.0.0.1/vuln.php?page=zip://avatars/myavi.jpg%23shell</code>
+<br /><br />
+I did not have to add the .php to the end because the script will automatically appends it!
+Now, we have successfully leveraged this LFI to an RCE using the <strong>zip://</strong> wrapper! 
+<br /><br />
+<img src="/images/lfi/lfi-4.png" alt="LFI-4" title="LFI-4" />
+<br /><br />
+Thanks for reading,<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+
+  </div>
+
+  
+    <div class="post-comments" itemprop="comment">
+      <hr />
+<h1>Comments</h1>
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    
+  /* var disqus_config = function () {
+     this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+     this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        
+        s.src = 'https://sxcurity.disqus.com/embed.js';
+        
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+    </div>
+  
+
+</article>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <p>
+      
+
+&copy; Corben Douglas - Twitter: <a href="https://twitter.com/sxcurity">@sxcurity</a> - Subscribe via <a href="http://hack-r.be:4000/feed.xml">RSS</a>
+
+    </p>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

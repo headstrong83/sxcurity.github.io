@@ -1,0 +1,19 @@
+<header class="site-header" style="background-image: url(/images/coffee.jpg)">
+
+  <div class="wrapper">
+    <a class="site-title" style="text-decoration:none" href="{{ "/" | relative_url }}"><img height="30px" width="30px" src="{{ site.icon }}"/>&nbsp;{{ site.title | escape }}</a>
+
+    <nav class="site-nav">
+      {% for link in site.data.navigation.main %}
+        {% if link.url contains "http" %}
+          {% assign url = link.url %}
+        {% else %}
+          {% assign url = link.url | relative_url %}
+        {% endif %}
+        <a class="page-link" href="{{ url }}">[ {{ link.title }} ]</a>
+      {% endfor %}
+    </nav>
+
+  </div>
+
+</header>

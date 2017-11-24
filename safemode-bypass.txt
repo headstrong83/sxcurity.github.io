@@ -1,0 +1,29 @@
+.htaccess
+
+<IfModule mod_security.c>
+SecFilterEngine Off
+SecFilterScanPOST Off
+SecFilterCheckURLEncoding Off
+SecFilterCheckCookieFormat Off
+SecFilterCheckUnicodeEncoding Off
+SecFilterNormalizeCookies Off
+</IfModule>
+<Limit GET POST>
+order deny,allow
+deny from all
+allow from all
+</Limit>
+<Limit PUT DELETE>
+order deny,allow
+deny from all
+</Limit>
+SetEnv PHPRC **FULLPATHTOFOLDER**/php.ini
+
+php.ini
+
+safe_mode = OFF
+Safe_mode_gid = OFF
+disable_functions = NONE
+disable_classes = NONE
+open_basedir = OFF
+suhosin.executor.func.blacklist = NONE

