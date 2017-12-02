@@ -133,6 +133,12 @@ I ran it and tried loading the page again in Safari and it loaded perfectly. I c
 <br><br>Here's the proof of concept video:
 <br>
 <iframe width="640" height="360" src="https://www.youtube.com/embed/lg31RYYG-T4" frameborder="0" gesture="media" allowfullscreen></iframe>
+<br>
+<h2><u>Timeline</u></h2>
+- (10/24/2017) Reported to Yahoo! via HackerOne
+- (10/27/2017) Confirmed & awarded $100 on Triage
+- (11/20/2017) Vulnerability Patched
+- (12/1/2017) Awarded $400 bounty + a $100 bonus for a "great writeup and POC" (-Yahoo)  
 <br><br>Although it was a low impact bug, it was definitely a learning experience and a fun challenge!<br><br> 
 Thanks for reading,<br><br>
 **Corben Douglas** (<font color="#E22A3C">@sxcurity</font>)
