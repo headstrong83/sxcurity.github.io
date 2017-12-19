@@ -3,7 +3,7 @@ layout: page
 title: "About"
 permalink: /about/
 ---
-Hello! My name is Corben Douglas (<a href="https://twitter.com/sxcurity"><font color="#1E94DE">@sxcurity</font></a>), an 18 year old college student and avid information security enthusiast! I'm currently active on HackerOne, but I also dabble on BugCrowd / Cobalt.io. 
+Hello! My name is Corben Douglas (<a href="https://twitter.com/sxcurity"><font color="#1E94DE">@sxcurity</font></a>), an 18 year-old information security enthusiast! I'm currently active on HackerOne, but I also dabble on BugCrowd / Cobalt.io. 
 
 ## Contact
 You can contact me here:
