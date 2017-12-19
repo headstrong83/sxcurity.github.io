@@ -8,7 +8,7 @@ This is a write-up of an SSRF I accidentally found in HackerTarget and leveraged
 <a href="https://hackertarget.com" style="color:#E11D1D">HackerTarget</a> is a service that provides access to online vulnerability scanners and tools used by many security professionals and "makes securing your systems easier". They also are the creators of <a href="https://dnsdumpster.com/" style="color:#E11D1D">DNSDumpster</a>, which is utilized in several recon tools.
 <br><br>
 <h4>&#128565; SSRF:</h4>
-*Server-Side Request Forgery* (SSRF) is a vulnerability in which an attacker can send a controlled, crafted request via a vulnerable application. We can communicate with different services running on different protocols by utilizing URI schemes such as dict://, gopher://, ftp://, and many more. Getting a server to make a request isnâ€™t a vulnerability in itself, but becomes one when you can make requests to things you wouldnâ€™t or shouldnâ€™t normally have access to such as internal networks or internal services.
+*Server-Side Request Forgery* (SSRF) is a vulnerability in which an attacker can send a controlled, crafted request via a vulnerable application. We can communicate with different services running on different protocols by utilizing URI schemes such as dict://, gopher://, ftp://, and many more. Getting a server to make a request isn't a vulnerability in itself, but becomes one when you can make requests to things you wouldn't or shouldn't normally have access to such as internal networks or internal services.
 <br><br>
 ### &#128270;&nbsp;Finding the vulnerability:
 I was using DNSDumpster for recon during a bug hunting session, and I noticed there was a button of a globe similar to &#127758; that said "Get HTTP Headers":
@@ -71,8 +71,8 @@ HackerTarget limits 25 API queries per IP, so my script only showed the ports 1 
 <br>
 #### &#128104;&zwj;&#128187; &nbsp;SMTP?
  - SMTP stands for <font id="highlighter">Simple Mail Transfer Protocol</font>.
- - It is a <a href="https://en.wikipedia.org/wiki/Internet_protocol_suite" rel="noopener noreferrer" target="_blank"><font id="highlighter">TCP/IP</font></a> protocol thatâ€™s used for sending emails. (who wouldâ€™ve guessed? &#128514;)
- - Usually itâ€™s used along with either <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Post_Office_Protocol"><font id="highlighter">pop3</font></a> or<a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol"> <font id="highlighter">imap</font></a>, which are used to receive emails.
+ - It is a <a href="https://en.wikipedia.org/wiki/Internet_protocol_suite" rel="noopener noreferrer" target="_blank"><font id="highlighter">TCP/IP</font></a> protocol that's used for sending emails. (who would've guessed? &#128514;)
+ - Usually it's used along with either <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Post_Office_Protocol"><font id="highlighter">pop3</font></a> or<a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol"> <font id="highlighter">imap</font></a>, which are used to receive emails.
 
  
 I knew I would be able to hit the service with this SSRF, but I wasn't positive that I would be able to send the valid commands needed to send emails from it. I then tried deducting which wrappers were supported and enabled besides **http://** and **https://**. <br><br> 
