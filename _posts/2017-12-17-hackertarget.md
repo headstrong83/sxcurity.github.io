@@ -3,7 +3,7 @@ layout: post
 title: "Hacking the Hackers: Leveraging an SSRF in HackerTarget"
 ---
 ### &#128187;&nbsp;Introduction:
-This is a write-up of an SSRF I accidentally found in HackerTarget and leveraged to get access to internal services! Please **note** that they **don't** have a bug bounty program, they're not ready for a thousand bug hunters to descend onto them.<br> 
+This is a write-up of an SSRF I accidentally found in HackerTarget and leveraged to get access to internal services! Please **note** that they **don't** have an active bug bounty program.<br> 
 <h4>&#129300; What is HackerTarget?</h4>
 <a href="https://hackertarget.com" style="color:#E11D1D">HackerTarget</a> is a service that provides access to online vulnerability scanners and tools used by many security professionals and "makes securing your systems easier". They also are the creators of <a href="https://dnsdumpster.com/" style="color:#E11D1D">DNSDumpster</a>, which is utilized in several recon tools.
 <br><br>
@@ -124,7 +124,7 @@ After yelling 'heck yeah!', I created a quick proof-of-concept video and I sent 
 It was a blast to leverage an SSRF on a target that everyone knows of and uses often!<br><br>
 
 ### &#9888;&#65039;&nbsp;Note:
-They **DO NOT** have a bug bounty program, theyâ€™re not ready for a thousand bug hunters to descend onto them, so please **DO NOT** test them without their permission!
+They **DO NOT** have a bug bounty program, so please **DO NOT** test them without their permission!
 <br><br>
 Thanks for reading,<br><br>
 **Corben Douglas** (<font color="#E22A3C">@sxcurity</font>)
