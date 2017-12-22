@@ -4,7 +4,7 @@ title: "Tricky CORS Bypass in Yahoo! View"
 ---
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 Recently, HackerOne hosted their second Hack The World competition. During this time I decided to take a look at Yahoo's bug bounty program because I have heard good things about them and also due to the fact that their scope is pretty big. After finding a few issues in my.yahoo.com and getting paid for those, I decided I was going to test <a href="https://view.yahoo.com" rel="noopener noreferrer" style="color:#DC0739;">Yahoo! View</a><br><br>
-I decided to browse a bit on <a href="https://view.yahoo.com" rel="noopener noreferrer" style="color:#DC0739;">https://view.yahoo.com</a> and look at what requests were being made. After about 2 minutes of clicking literally everything I could click and submitting as many forms as I could, I decided to look through everything Burp Suite logged.<br><br> 
+I decided to browse a bit on <a href="https://view.yahoo.com" rel="noopener noreferrer" style="color:#DC0739;">https://view.yahoo.com</a> and look at what requests were being made. After about 2 minutes of clicking literally everything I could click and submitting as many forms as I could, I decided to look through everything Burp Suite logged.<br><br>
 I saw that the applicaiton  making API calls to <a href="https://api.view.yahoo.com" rel="noopener noreferrer" style="color:#DC0739;">https://api.view.yahoo.com</a> and thanks to Burp Suite's passive monitoring, I also noticed that the application implemented a cross-origin resource sharing (CORS) policy.<br><br>According to the <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">MDN Web Docs</a>, CORS "is a mechanism that uses additional HTTP headers to let a user agent gain permission to access selected resources from a server on a different origin (domain) than the site currently in use."<br><br>
 Since browsers enforce a Same-Origin Policy, which means that it only accepts ajax requests from accessing data from the same domain, Cross-Origin Resource Sharing allows sharing data with other sites that can be specified. <br><br>The initial request I saw in Burp's history was:
 ```bash
@@ -41,7 +41,7 @@ Voila! Still **DID NOT** respond with the Allow-Origin or ACAC. I had one more p
 <br><br><br>I was about to give up when I came up with the idea to send *two domains* in the origin header:
 ```bash
 curl -vv 'http://api.view.yahoo.com/api/session/preferences' -H 'origin: https://view.yahoo.com sxcurity.pro'
-``` 
+```
 To my surprise the server responded with:
 ```bash
 HTTP/1.1 200 OK
@@ -53,7 +53,7 @@ Access-Control-Allow-Origin: https://view.yahoo.com sxcurity.pro
 I was intrigued and was trying to come up with a way that I could make this a valid domain name so I could exploit it. I tried adding some characters to replace the space between the two domains to see what the server responded with!
 ```bash
 curl -vv 'http://api.view.yahoo.com/api/session/preferences' -H 'origin: https://view.yahoo.com%sxcurity.pro'
-``` 
+```
 Response:
 ```bash
 HTTP/1.1 200 OK
@@ -70,7 +70,7 @@ I decided to try using a **URL-Encoded backtick** / %60 since I saw it would be 
 curl -vv 'http://api.view.yahoo.com/api/session/preferences' -H 'origin: https://view.yahoo.com%60cdl.sxcurity.pro'
 ```
 The server's response:
-```bash 
+```bash
 Access-Control-Allow-Credentials: true
 Access-Control-Allow-Origin: http://view.yahoo.com%60cdl.sxcurity.pro
 ```
@@ -139,9 +139,9 @@ I ran it and tried loading the page again in Safari and it loaded perfectly. I c
 - (10/27/2017) Confirmed & awarded $100 on Triage
 - (11/20/2017) Vulnerability Patched
 - (12/1/2017) Awarded $400 bounty + a $100 bonus for a "great writeup and POC" (-Yahoo)  
-<br><br>Although it was a low impact bug, it was definitely a learning experience and a fun challenge!<br><br> 
+<br><br>Although it was a low impact bug, it was definitely a learning experience and a fun challenge!<br><br>
 Thanks for reading,<br><br>
-**Corben Douglas** (<font color="#E22A3C">@sxcurity</font>)
+**Corben Leo** (<font color="#E22A3C">@sxcurity</font>)
 - https://hackerone.com/cdl
 - https://twitter.com/sxcurity
 - https://bugcrowd.com/c
