@@ -9,3 +9,4 @@ Hello! My name is Corben Leo (<a href="https://twitter.com/sxcurity"><font color
 You can contact me here:
 * Email: <font color="#4081A1" size="4%">corben[at]sxcurity.pro</font>
 * Twitter: <font color="#4081A1" size="4%">@sxcurity</font>
+* PGP: <font color="#4081A1" size="4%"><a href="/pgp.txt">PGP</a></font>
