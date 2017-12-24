@@ -75,7 +75,7 @@ HackerTarget limits 25 API queries per IP, so my script only showed the ports 1 
  - Usually it's used along with either <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Post_Office_Protocol"><font id="highlighter">pop3</font></a> or<a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol"> <font id="highlighter">imap</font></a>, which are used to receive emails.
 
 
-I knew I would be able to hit the service with this SSRF, but I wasn't positive that I would be able to send the valid commands needed to send emails from it. I then tried deducting which wrappers were supported and enabled besides **http://** and **https://**. <br><br>
+I knew I would be able to hit the service with this SSRF, but I wasn't positive that I would be able to send the valid commands needed to send emails from it. I then tried deducing which wrappers were supported and enabled besides **http://** and **https://**. <br><br>
 I tried using <font id="highlighter2">dict://</font> right away and was able to get the libcurl version, but that wasn't very helpful. Next, I created a PHP file on my server to initiate a redirect to another port with the <font id="highlighter2">gopher://</font> wrapper:<br>
 ```php
 <?php
