@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Chaining 2 Bugs in Yahoo! to steal contacts!"
+title: "Chaining Bugs to Steal Yahoo Contacts!"
 ---
 ### &#x1F468;&#x1F3FB;&#x200D;&#x1F4BB;&nbsp;Introduction & Background:
 This is a write-up of how I chained two vulnerabilities (an XSS and a CORS misconfiguration) that allowed me to steal contacts from a victim's contact book. This data included: names, phone numbers, addresses, etc. 
