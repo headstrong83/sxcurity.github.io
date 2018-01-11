@@ -15,7 +15,7 @@
 # in the templates via {{ site.myvariable }}.
 icon: "/icon.svg"
 title: sxcurity.pro 
-author: Corben Leo | Proudly powered by Ramen Noodles
+author: Corben Leo | Proudly powered by Ramen Noodles |
 description: Information Security blog by @sxcurity
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://sxcurity.github.io" # the base hostname & protocol for your site, e.g. http://example.com
